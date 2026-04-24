@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+
 </head>
 
 <body class="bg-black text-white">
@@ -23,14 +25,14 @@
   </label>
 
   <button onclick="baixarTudo()" class="w-full bg-white text-black p-4 rounded font-bold">
-    BAIXAR TODOS OS BANNERS
+    BAIXAR CAMPANHA COMPLETA
   </button>
 
   <p id="status" class="text-xs mt-4 text-zinc-400"></p>
 </div>
 
-<!-- AREA DOS BANNERS -->
-<div id="area" class="flex-1 flex flex-wrap gap-6 p-6 justify-center"></div>
+<!-- AREA -->
+<div id="area" class="flex-1 flex flex-wrap gap-8 p-6 justify-center"></div>
 
 </div>
 
@@ -39,10 +41,18 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
+const copies = [
+  ["Arquitetura Exclusiva","Um novo nível de sofisticação para quem exige mais"],
+  ["O Endereço do Prestígio","Localização que valoriza seu patrimônio"],
+  ["Invista no Extraordinário","Alta valorização em um projeto único"],
+  ["Design que Impressiona","Cada detalhe pensado para encantar"],
+  ["Seu Novo Padrão de Vida","Conforto, luxo e exclusividade em um só lugar"]
+];
+
 document.getElementById('upload').onchange = async (e) => {
 
   const status = document.getElementById('status');
-  status.innerText = "🔥 GERANDO CAMPANHA COMPLETA...";
+  status.innerText = "🔎 ANALISANDO BOOK...";
 
   const file = e.target.files[0];
   const reader = new FileReader();
@@ -51,17 +61,23 @@ document.getElementById('upload').onchange = async (e) => {
 
     const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
 
-    let textoTotal = "";
-    let bannersHTML = "";
+    let banners = "";
+    let usados = 0;
 
-    const maxPages = Math.min(5, pdf.numPages);
+    for (let i = 1; i <= pdf.numPages; i++) {
 
-    for (let i = 1; i <= maxPages; i++) {
+      if (usados >= 5) break;
 
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
+      const content = await page.getTextContent();
+      const texto = content.items.map(i => i.str).join(" ");
 
+      // FILTRO DE PÁGINA BOA
+      if (texto.length > 1500) continue;
+
+      const viewport = page.getViewport({ scale: 2 });
       const canvas = document.createElement("canvas");
+
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
@@ -72,83 +88,85 @@ document.getElementById('upload').onchange = async (e) => {
 
       const img = canvas.toDataURL("image/jpeg");
 
-      // pegar texto
-      const content = await page.getTextContent();
-      textoTotal += content.items.map(i => i.str).join(" ");
+      if (img.length < 80000) continue;
 
-      // gerar copy diferente
-      const copy = gerarCopy(textoTotal.toUpperCase(), i);
+      const c = copies[usados % copies.length];
 
-      bannersHTML += `
-        <div class="banner w-[320px] h-[570px] rounded-2xl overflow-hidden relative bg-cover bg-center"
-        style="background-image:url('${img}')">
+      banners += `
+        <div class="banner" style="
+          width:1080px;
+          height:1920px;
+          background-image:url('${img}');
+          background-size:cover;
+          background-position:center;
+          position:relative;
+          border-radius:20px;
+          overflow:hidden;
+        ">
 
-          <div class="absolute inset-0 bg-black/60"></div>
+          <div style="
+            position:absolute;
+            inset:0;
+            background:linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.2));
+          "></div>
 
-          <div class="absolute bottom-0 p-6">
-            <h2 class="text-2xl font-black">${copy.t}</h2>
-            <p class="text-sm mt-2">${copy.s}</p>
+          <div style="
+            position:absolute;
+            bottom:0;
+            padding:80px;
+          ">
+
+            <h2 style="
+              font-family:'Playfair Display';
+              font-size:80px;
+              font-weight:900;
+              line-height:1;
+              text-shadow:0 10px 40px rgba(0,0,0,0.9);
+            ">
+              ${c[0]}
+            </h2>
+
+            <p style="
+              font-family:'Montserrat';
+              font-size:28px;
+              margin-top:20px;
+              opacity:0.9;
+            ">
+              ${c[1]}
+            </p>
+
+            <div style="
+              margin-top:30px;
+              font-size:14px;
+              letter-spacing:4px;
+              opacity:0.7;
+            ">
+              ALTO PADRÃO • LANÇAMENTO
+            </div>
+
           </div>
 
         </div>
       `;
+
+      usados++;
     }
 
-    document.getElementById("area").innerHTML = bannersHTML;
+    document.getElementById("area").innerHTML = banners;
 
-    status.innerText = "✅ CAMPANHA GERADA COM SUCESSO";
+    status.innerText = "✅ CAMPANHA GERADA";
 
   };
 
   reader.readAsArrayBuffer(file);
 };
 
-
-// 🧠 IA MELHORADA
-function gerarCopy(texto, index){
-
-  const luxo = [
-    "Exclusividade em cada detalhe",
-    "Arquitetura que impressiona",
-    "Alto padrão redefinido"
-  ];
-
-  const investimento = [
-    "Alta valorização garantida",
-    "Oportunidade única de investimento",
-    "Localização estratégica"
-  ];
-
-  const familia = [
-    "Perfeito para sua família",
-    "Conforto e qualidade de vida",
-    "Seu novo lar começa aqui"
-  ];
-
-  let tipo;
-
-  if(texto.includes("LUXO") || texto.includes("ALTO PADRAO")){
-    tipo = luxo;
-  } else if(texto.includes("INVEST")){
-    tipo = investimento;
-  } else {
-    tipo = familia;
-  }
-
-  return {
-    t: tipo[index % tipo.length],
-    s: "Agende sua visita agora e descubra esse empreendimento incrível"
-  }
-}
-
-
-// DOWNLOAD
 function baixarTudo(){
   document.querySelectorAll(".banner").forEach((el, i)=>{
-    html2canvas(el).then(canvas=>{
+    html2canvas(el, { scale: 3 }).then(canvas=>{
       let link = document.createElement('a');
       link.download = 'banner_'+(i+1)+'.jpg';
-      link.href = canvas.toDataURL();
+      link.href = canvas.toDataURL('image/jpeg',1);
       link.click();
     });
   });
