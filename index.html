@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -19,13 +18,11 @@
 
   <h1 class="text-3xl font-black text-yellow-500 mb-6">IMOB AI PRO</h1>
 
-  <!-- BOTÃO DE UPLOAD BONITO -->
   <label class="block w-full p-8 border-2 border-dashed border-yellow-500 rounded-xl text-center cursor-pointer hover:bg-yellow-500 hover:text-black transition mb-4">
-    <span class="font-bold text-lg">📄 CARREGAR BOOK DO EMPREENDIMENTO</span>
+    <span class="font-bold text-lg">📄 CARREGAR BOOK</span>
     <input type="file" id="upload" accept="application/pdf" class="hidden">
   </label>
 
-  <!-- BOTÃO DOWNLOAD -->
   <button onclick="baixar()" class="w-full bg-white text-black p-4 rounded font-bold hover:bg-yellow-500 transition">
     BAIXAR BANNER
   </button>
@@ -37,17 +34,15 @@
 <!-- BANNER -->
 <div class="flex-1 flex items-center justify-center bg-black">
 
-  <div id="banner" class="w-[360px] h-[640px] bg-black rounded-3xl overflow-hidden relative shadow-2xl">
+  <div id="banner" 
+       class="w-[360px] h-[640px] rounded-3xl overflow-hidden relative shadow-2xl bg-cover bg-center">
 
-    <!-- IMAGEM DO PDF -->
-    <canvas id="pdf-img" class="absolute inset-0 w-full h-full object-cover"></canvas>
-
-    <!-- OVERLAY -->
+    <!-- overlay -->
     <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
-    <!-- TEXTO -->
+    <!-- texto -->
     <div class="absolute bottom-0 p-6">
-      <h2 id="titulo" class="text-3xl font-black leading-tight"></h2>
+      <h2 id="titulo" class="text-3xl font-black"></h2>
       <p id="sub" class="text-sm text-zinc-300 mt-2"></p>
     </div>
 
@@ -58,6 +53,7 @@
 </div>
 
 <script>
+
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
@@ -75,10 +71,10 @@ document.getElementById('upload').onchange = async (e) => {
 
     const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
 
-    // 🖼️ PEGA IMAGEM
     const page = await pdf.getPage(1);
-    const canvas = document.getElementById('pdf-img');
-    const ctx = canvas.getContext('2d');
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
     const viewport = page.getViewport({ scale: 2 });
 
@@ -90,7 +86,13 @@ document.getElementById('upload').onchange = async (e) => {
       viewport: viewport
     }).promise;
 
-    // 📝 TEXTO
+    // 🔥 CONVERTE PRA IMAGEM
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+    // 🔥 APLICA COMO BACKGROUND
+    document.getElementById("banner").style.backgroundImage = `url(${imgData})`;
+
+    // 🧠 TEXTO
     let texto = "";
 
     for (let i = 1; i <= Math.min(3, pdf.numPages); i++) {
@@ -101,29 +103,28 @@ document.getElementById('upload').onchange = async (e) => {
 
     texto = texto.toUpperCase();
 
-    // 🧠 IA DE COPY
     let titulo = "Seu Novo Imóvel";
     let sub = "Descubra um novo padrão de viver";
 
     if (texto.includes("PISCINA") || texto.includes("LAZER")) {
       titulo = "Lazer de Alto Padrão";
-      sub = "Um verdadeiro resort particular para sua família";
+      sub = "Um verdadeiro resort particular";
     }
 
     if (texto.includes("LUXO") || texto.includes("ALTO PADRAO")) {
       titulo = "Arquitetura Exclusiva";
-      sub = "Sofisticação e design em cada detalhe";
+      sub = "Sofisticação em cada detalhe";
     }
 
     if (texto.includes("INVESTIMENTO")) {
       titulo = "Oportunidade Única";
-      sub = "Alta valorização em localização estratégica";
+      sub = "Alta valorização garantida";
     }
 
     document.getElementById("titulo").innerText = titulo;
     document.getElementById("sub").innerText = sub;
 
-    status.innerText = "✅ Banner gerado!";
+    status.innerText = "✅ Banner pronto!";
   };
 
   reader.readAsArrayBuffer(file);
@@ -132,11 +133,12 @@ document.getElementById('upload').onchange = async (e) => {
 function baixar() {
   html2canvas(document.querySelector("#banner")).then(canvas => {
     let link = document.createElement('a');
-    link.download = 'banner-imobiliario.jpg';
+    link.download = 'banner.jpg';
     link.href = canvas.toDataURL('image/jpeg', 0.95);
     link.click();
   });
 }
+
 </script>
 
 </body>
