@@ -1,83 +1,119 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<meta charset="UTF-8">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
 </head>
 
 <body class="bg-black text-white">
 
 <div class="flex flex-col lg:flex-row min-h-screen">
 
-  <!-- PAINEL -->
-  <div class="p-6 lg:w-1/3 bg-zinc-900">
-    <h1 class="text-3xl font-black mb-4 text-yellow-500">IMOB BANNER PRO</h1>
+<!-- CONTROLE -->
+<div class="p-6 lg:w-1/3 bg-zinc-900">
+  <h1 class="text-3xl font-black text-yellow-500 mb-4">IMOB AI PRO</h1>
 
-    <div class="space-y-4">
-      <input id="nome" placeholder="Nome do imóvel" class="w-full p-3 rounded bg-zinc-800">
-      <input id="cidade" placeholder="Cidade" class="w-full p-3 rounded bg-zinc-800">
-      <input id="preco" placeholder="Preço (ex: R$ 1.200.000)" class="w-full p-3 rounded bg-zinc-800">
-      <input id="destaques" placeholder="Destaques (piscina, varanda...)" class="w-full p-3 rounded bg-zinc-800">
+  <input type="file" id="upload" accept="application/pdf"
+  class="w-full p-4 bg-zinc-800 rounded mb-4">
 
-      <button onclick="gerar()" class="w-full bg-yellow-500 text-black font-bold p-3 rounded">
-        GERAR BANNER
-      </button>
+  <button onclick="baixar()" class="w-full bg-white text-black p-3 rounded font-bold">
+    BAIXAR BANNER
+  </button>
 
-      <button onclick="baixar()" class="w-full bg-white text-black font-bold p-3 rounded">
-        BAIXAR IMAGEM
-      </button>
+  <p id="status" class="text-xs mt-4 text-zinc-400"></p>
+</div>
+
+<!-- BANNER -->
+<div class="flex-1 flex items-center justify-center">
+  <div id="banner" class="w-[360px] h-[640px] bg-black rounded-3xl overflow-hidden relative">
+
+    <canvas id="pdf-img" class="absolute inset-0 w-full h-full object-cover"></canvas>
+
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
+
+    <div class="absolute bottom-0 p-6">
+      <h2 id="titulo" class="text-3xl font-black"></h2>
+      <p id="sub" class="text-sm text-zinc-300 mt-2"></p>
     </div>
+
   </div>
-
-  <!-- BANNER -->
-  <div class="flex-1 flex items-center justify-center bg-black">
-    <div id="banner" class="w-[360px] h-[640px] bg-zinc-800 relative rounded-3xl overflow-hidden">
-
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
-
-      <div class="absolute bottom-0 p-6">
-        <h2 id="titulo" class="text-3xl font-black leading-tight">
-          Seu novo imóvel
-        </h2>
-
-        <p id="sub" class="text-sm text-zinc-300 mt-2">
-          Preencha os dados para gerar
-        </p>
-
-        <p id="precoFinal" class="text-yellow-500 font-bold mt-3 text-lg"></p>
-      </div>
-    </div>
-  </div>
+</div>
 
 </div>
 
 <script>
-function gerar(){
-  const nome = document.getElementById('nome').value;
-  const cidade = document.getElementById('cidade').value;
-  const preco = document.getElementById('preco').value;
-  const destaques = document.getElementById('destaques').value.toLowerCase();
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-  let titulo = "Oportunidade Exclusiva";
-  let sub = "Um imóvel pensado para quem exige alto padrão.";
+document.getElementById('upload').onchange = async (e) => {
 
-  if(destaques.includes("piscina")){
-    titulo = "Lazer Privativo de Alto Nível";
-    sub = "Piscina e conforto para viver como resort.";
-  }
+  const status = document.getElementById('status');
+  status.innerText = "Processando PDF...";
 
-  if(destaques.includes("luxo")){
-    titulo = "Arquitetura de Luxo";
-    sub = "Design sofisticado para um estilo de vida único.";
-  }
+  const file = e.target.files[0];
+  const reader = new FileReader();
 
-  document.getElementById('titulo').innerText = nome || titulo;
-  document.getElementById('sub').innerText = cidade + " • " + sub;
-  document.getElementById('precoFinal').innerText = preco;
-}
+  reader.onload = async function() {
 
-function baixar(){
+    const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+
+    // 🖼️ PEGAR IMAGEM DA PRIMEIRA PÁGINA
+    const page = await pdf.getPage(1);
+    const canvas = document.getElementById('pdf-img');
+    const viewport = page.getViewport({ scale: 2 });
+
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    await page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport: viewport
+    }).promise;
+
+    // 📝 EXTRAIR TEXTO
+    let texto = "";
+
+    for (let i = 1; i <= Math.min(3, pdf.numPages); i++) {
+      const p = await pdf.getPage(i);
+      const c = await p.getTextContent();
+      texto += c.items.map(i => i.str).join(" ");
+    }
+
+    texto = texto.toUpperCase();
+
+    // 🧠 IA DE COPY
+    let titulo = "Seu Novo Imóvel";
+    let sub = "Descubra um novo padrão de viver";
+
+    if (texto.includes("PISCINA") || texto.includes("LAZER")) {
+      titulo = "Lazer de Alto Padrão";
+      sub = "Um verdadeiro resort particular para sua família";
+    }
+
+    if (texto.includes("LUXO") || texto.includes("ALTO PADRAO")) {
+      titulo = "Arquitetura Exclusiva";
+      sub = "Sofisticação e design em cada detalhe";
+    }
+
+    if (texto.includes("INVESTIMENTO")) {
+      titulo = "Oportunidade Única";
+      sub = "Alta valorização em localização estratégica";
+    }
+
+    document.getElementById("titulo").innerText = titulo;
+    document.getElementById("sub").innerText = sub;
+
+    status.innerText = "Banner gerado com sucesso!";
+  };
+
+  reader.readAsArrayBuffer(file);
+};
+
+function baixar() {
   html2canvas(document.querySelector("#banner")).then(canvas => {
     let link = document.createElement('a');
     link.download = 'banner-imobiliario.jpg';
