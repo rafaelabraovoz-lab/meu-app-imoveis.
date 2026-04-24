@@ -1,67 +1,36 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histórico de Análises</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 p-6 font-sans">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-    <div class="max-w-3xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Histórico</h1>
-                <p id="contador" class="text-sm text-gray-500">Carregando análises...</p>
-            </div>
-            <button class="bg-black text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium hover:bg-gray-800">
-                + Nova Análise
-            </button>
-        </div>
-
-        <div id="lista-imoveis" class="grid gap-4">
-            </div>
+<body class="bg-gray-900 text-white p-5">
+  <div class="max-w-md mx-auto">
+    <input type="file" id="upload" accept="application/pdf" class="mb-5 block w-full text-sm">
+    
+    <div id="banner" class="w-full aspect-[9/16] bg-gradient-to-b from-blue-700 to-black p-10 flex flex-col justify-between border-4 border-white">
+      <h2 id="b-nome" class="text-4xl font-black uppercase tracking-tighter">Aguardando PDF...</h2>
+      <div>
+        <p id="b-info" class="text-xl font-light"></p>
+        <div class="h-2 w-20 bg-yellow-400 my-6"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // SEU JSON AQUI
-        const analises = [
-            { id: 1, nome: "Casa na Praia", local: "Florianópolis, SC", publico: "Família", data: "20 Abr 2026" },
-            { id: 2, nome: "Apto Executivo", local: "São Paulo, SP", publico: "Investidores", data: "18 Abr 2026" },
-            { id: 3, nome: "Cobertura Luxo", local: "Rio de Janeiro, RJ", publico: "Alta Renda", data: "15 Abr 2026" }
-        ];
-
-        const lista = document.getElementById('lista-imoveis');
-        const contador = document.getElementById('contador');
-
-        // Função para desenhar a lista na tela
-        function carregarLista() {
-            contador.innerText = `${analises.length} análises realizadas`;
-            
-            lista.innerHTML = analises.map(item => `
-                <div class="bg-white p-5 rounded-2xl border border-gray-200 flex justify-between items-center hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                            <span class="text-blue-600 font-bold">🏠</span>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-gray-800">${item.nome}</h3>
-                            <div class="flex gap-2 items-center mt-1">
-                                <span class="text-xs text-gray-500">${item.local}</span>
-                                <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">${item.publico}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 text-gray-400">
-                        <span class="text-xs">${item.data}</span>
-                        <span>❯</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Inicia o app
-        carregarLista();
-    </script>
+  <script>
+    const input = document.getElementById('upload');
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const loadingTask = pdfjsLib.getDocument(new Uint8Array(this.result));
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        const texto = content.items.map(item => item.str).join(" ");
+        
+        // Lógica simples de extração: pega as primeiras palavras como nome
+        document.getElementById('b-nome').innerText = texto.substring(0, 30) + "...";
+        document.getElementById('b-info').innerText = "Extraído do Book PDF";
+      };
+      reader.readAsArrayBuffer(file);
+    };
+  </script>
 </body>
-</html>
